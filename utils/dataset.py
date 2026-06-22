@@ -7,6 +7,8 @@ import numpy
 import torch
 from PIL import Image
 from torch.utils import data
+from pathlib import Path
+
 
 FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp'
 
@@ -187,11 +189,29 @@ class Dataset(data.Dataset):
 
     @staticmethod
     def load_label(filenames):
-        path = f'{os.path.dirname(filenames[0])}.cache'
+        # print(type(filenames))
+
+        # if isinstance(filenames, list):
+        #     print("First filename:", filenames[0])
+        #     print("First five:")
+        #     print(filenames[:5])
+        # else:
+        #     print(filenames)
+
+        if isinstance(filenames, (str, Path)):
+            filenames = sorted(
+                str(p)
+                for p in Path(filenames).glob("*")
+                if p.suffix.lower() in [".jpg", ".jpeg", ".png", ".bmp", ".png", ".tif", ".tiff"]
+            )
+
+        path = f"{os.path.dirname(filenames[0])}.cache"
         if os.path.exists(path):
-            return torch.load(path)
+            return torch.load(path, weights_only=False)
         x = {}
+        print(f'path is {path}')
         for filename in filenames:
+            print('------',filename)
             try:
                 # verify images
                 with open(filename, 'rb') as f:
@@ -223,6 +243,7 @@ class Dataset(data.Dataset):
                 if filename:
                     x[filename] = [label, shape]
             except FileNotFoundError:
+                print('------',filename)
                 pass
         torch.save(x, path)
         return x
