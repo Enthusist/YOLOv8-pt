@@ -116,8 +116,36 @@ def wh2xy(x):
 
 
 def non_max_suppression(prediction, conf_threshold=0.25, iou_threshold=0.45):
+    # print(">>> conf_threshold actually used:", conf_threshold)
+
+    # print("prediction shape:", prediction.shape)
+
     nc = prediction.shape[1] - 4  # number of classes
+    # print("nc =", nc)
+
+    # print("prediction max:", prediction.max())
+    # print("prediction min:", prediction.min())
+
+    # print('___a___',prediction[:, 4:4 + nc].shape)
+    # print('___b___',prediction[:, 4:4 + nc].amax(1).shape)
+    # print("max score this batch:", prediction[:, 4:4+nc].amax().item())
     xc = prediction[:, 4:4 + nc].amax(1) > conf_threshold  # candidates
+    # print("xc---->", xc)
+    # print("xc shape:", xc.shape)
+    # print("candidates:", xc.sum())  
+
+    # cls_scores = prediction[:, 4:, :]
+
+    # max_score = cls_scores.max()
+    # print(max_score)
+
+    # batch_idx, class_idx, pred_idx = (
+    #     cls_scores == max_score
+    # ).nonzero()[0]
+
+    # print(batch_idx, class_idx, pred_idx)
+
+    # print(prediction[batch_idx, :, pred_idx])
 
     # Settings
     max_wh = 7680  # (pixels) maximum box width and height
@@ -242,7 +270,7 @@ def compute_ap(tp, conf, pred_cls, target_cls, eps=1e-16):
 
 
 def strip_optimizer(filename):
-    x = torch.load(filename, map_location=torch.device('cpu'))
+    x = torch.load(filename, map_location=torch.device('cpu'), weights_only=False)
     x['model'].half()  # to FP16
     for p in x['model'].parameters():
         p.requires_grad = False
