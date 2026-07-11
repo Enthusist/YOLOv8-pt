@@ -9,11 +9,13 @@ import torch
 import tqdm
 import yaml
 from torch.utils import data
+from torchvision.ops import box_iou as _box_iou
 # import ultralytics
 
 from utils.pretrained import load_pretrained
 from nets import nn
 from utils import util
+from utils import d4
 from utils.dataset import Dataset
 
 warnings.filterwarnings("ignore")
@@ -314,6 +316,12 @@ def main():
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--weights', default='', type=str,
                      help='path to pretrained .pt to initialize from (e.g. yolov8n.pt)')
+    parser.add_argument('--seed', default=0, type=int,
+                     help='random seed for python/numpy/torch, overrides util.setup_seed() default')
+    parser.add_argument('--cons-weight', default=1.0, type=float,
+                     help='max weight of the D4 consistency loss after ramp-up; 0.0 disables it entirely (baseline mode)')
+    parser.add_argument('--ramp-epochs', default=20, type=int,
+                     help='number of epochs over which the consistency loss weight linearly ramps to --cons-weight')
 
     args = parser.parse_args()
 
@@ -330,6 +338,16 @@ def main():
 
     util.setup_seed()
     util.setup_multi_processes()
+
+    # util.setup_seed() typically pins a fixed default seed (commonly 0) --
+    # re-seed explicitly here so --seed actually varies the run. This must
+    # happen before the DataLoader is constructed/iterated in train(), since
+    # worker processes derive their seed from torch's RNG state at spawn time.
+    import random
+    random.seed(args.seed)
+    numpy.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
 
     with open(os.path.join('utils', 'args.yaml'), errors='ignore') as f:
         params = yaml.safe_load(f)
